@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2016 the original author or authors.
+ * Copyright 2002-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,41 +19,73 @@ import org.junit.Before;
 import org.junit.Test;
 import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.security.web.csrf.DefaultCsrfToken;
+import org.w3c.dom.Document;
+import org.w3c.dom.NodeList;
 
 import static org.assertj.core.api.Assertions.*;
 
+import java.io.ByteArrayInputStream;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathFactory;
+
 /**
  * @author Nick Williams
+ * @author Ruby Hartono
  */
 public class CsrfInputTagTests {
 
 	public CsrfInputTag tag;
 
+	private XPath xPath;
+
 	@Before
 	public void setUp() {
 		this.tag = new CsrfInputTag();
+		this.xPath = XPathFactory.newInstance().newXPath();
 	}
 
 	@Test
-	public void handleTokenReturnsHiddenInput() {
-		CsrfToken token = new DefaultCsrfToken("X-Csrf-Token", "_csrf",
-				"abc123def456ghi789");
+	public void handleTokenReturnsHiddenInput() throws Exception {
+		CsrfToken token = new DefaultCsrfToken("X-Csrf-Token", "_csrf", "abc123def456ghi789");
 
 		String value = this.tag.handleToken(token);
 
 		assertThat(value).as("The returned value should not be null.").isNotNull();
-		assertThat(
-				value).withFailMessage("The output is not correct.").isEqualTo("<input type=\"hidden\" name=\"_csrf\" value=\"abc123def456ghi789\" />");
+
+		String expression = "//input";
+		NodeList node = (NodeList) xPath.compile(expression).evaluate(getDocument(value), XPathConstants.NODESET);
+		String inputName = node.item(0).getAttributes().getNamedItem("name").getNodeValue();
+		String inputTokenValue = node.item(0).getAttributes().getNamedItem("value").getNodeValue();
+
+		assertThat(inputName).isEqualTo("_csrf");
+		assertThat(token.matches(inputTokenValue)).isTrue();
 	}
 
 	@Test
-	public void handleTokenReturnsHiddenInputDifferentTokenValue() {
-		CsrfToken token = new DefaultCsrfToken("X-Csrf-Token", "csrfParameter",
-				"fooBarBazQux");
+	public void handleTokenReturnsHiddenInputDifferentTokenValue() throws Exception {
+		CsrfToken token = new DefaultCsrfToken("X-Csrf-Token", "csrfParameter", "fooBarBazQux");
 
 		String value = this.tag.handleToken(token);
 
-		assertThat(value).as("The returned value should not be null.").isNotNull();
-		assertThat(value).withFailMessage("The output is not correct.").isEqualTo("<input type=\"hidden\" name=\"csrfParameter\" value=\"fooBarBazQux\" />");
+		String expression = "//input";
+		NodeList node = (NodeList) xPath.compile(expression).evaluate(getDocument(value), XPathConstants.NODESET);
+		String inputName = node.item(0).getAttributes().getNamedItem("name").getNodeValue();
+		String inputTokenValue = node.item(0).getAttributes().getNamedItem("value").getNodeValue();
+
+		assertThat(inputName).isEqualTo("csrfParameter");
+		assertThat(token.matches(inputTokenValue)).isTrue();
 	}
+
+	private static Document getDocument(String value) throws Exception {
+		String xmlVersion = "<?xml version=\"1.0\" encoding=\"utf-8\" ?>";
+		value = xmlVersion + "<testResult>" + value + "</testResult>";
+		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+		DocumentBuilder builder = factory.newDocumentBuilder();
+		Document doc = builder.parse(new ByteArrayInputStream(value.getBytes()));
+		return doc;
+	}
+
 }

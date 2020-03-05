@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2019 the original author or authors.
+ * Copyright 2002-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package org.springframework.security.config.annotation.web.configurers;
 
 import org.junit.Rule;
 import org.junit.Test;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.mock.web.MockHttpSession;
@@ -35,7 +36,6 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.security.web.authentication.logout.SimpleUrlLogoutSuccessHandler;
 import org.springframework.security.web.authentication.ui.DefaultLoginPageGeneratingFilter;
 import org.springframework.security.web.csrf.CsrfToken;
-import org.springframework.security.web.csrf.DefaultCsrfToken;
 import org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -44,6 +44,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -64,6 +65,15 @@ public class DefaultLoginPageConfigurerTests {
 	@Autowired
 	MockMvc mvc;
 
+	private CsrfToken getMockCsrfToken(String headerName, String parameterName, String token) {
+		CsrfToken csrfToken = Mockito.mock(CsrfToken.class);
+		when(csrfToken.getHeaderName()).thenReturn(headerName);
+		when(csrfToken.getParameterName()).thenReturn(parameterName);
+		when(csrfToken.getToken()).thenReturn(token);
+
+		return csrfToken;
+	}
+
 	@Test
 	public void getWhenFormLoginEnabledThenRedirectsToLoginPage() throws Exception {
 		this.spring.register(DefaultLoginPageConfig.class).autowire();
@@ -75,7 +85,8 @@ public class DefaultLoginPageConfigurerTests {
 	@Test
 	public void loginPageThenDefaultLoginPageIsRendered() throws Exception {
 		this.spring.register(DefaultLoginPageConfig.class).autowire();
-		CsrfToken csrfToken = new DefaultCsrfToken("X-CSRF-TOKEN", "_csrf", "BaseSpringSpec_CSRFTOKEN");
+		CsrfToken csrfToken = getMockCsrfToken("X-CSRF-TOKEN", "_csrf", "BaseSpringSpec_CSRFTOKEN");
+
 		String csrfAttributeName = HttpSessionCsrfTokenRepository.class.getName().concat(".CSRF_TOKEN");
 
 		this.mvc.perform(get("/login")
@@ -124,7 +135,7 @@ public class DefaultLoginPageConfigurerTests {
 	@Test
 	public void loginPageWhenErrorThenDefaultLoginPageWithError() throws Exception {
 		this.spring.register(DefaultLoginPageConfig.class).autowire();
-		CsrfToken csrfToken = new DefaultCsrfToken("X-CSRF-TOKEN", "_csrf", "BaseSpringSpec_CSRFTOKEN");
+		CsrfToken csrfToken = getMockCsrfToken("X-CSRF-TOKEN", "_csrf", "BaseSpringSpec_CSRFTOKEN");
 		String csrfAttributeName = HttpSessionCsrfTokenRepository.class.getName().concat(".CSRF_TOKEN");
 
 		MvcResult mvcResult = this.mvc.perform(post("/login")
@@ -180,7 +191,7 @@ public class DefaultLoginPageConfigurerTests {
 	@Test
 	public void loginPageWhenLoggedOutThenDefaultLoginPageWithLogoutMessage() throws Exception {
 		this.spring.register(DefaultLoginPageConfig.class).autowire();
-		CsrfToken csrfToken = new DefaultCsrfToken("X-CSRF-TOKEN", "_csrf", "BaseSpringSpec_CSRFTOKEN");
+		CsrfToken csrfToken = getMockCsrfToken("X-CSRF-TOKEN", "_csrf", "BaseSpringSpec_CSRFTOKEN");
 		String csrfAttributeName = HttpSessionCsrfTokenRepository.class.getName().concat(".CSRF_TOKEN");
 
 		this.mvc.perform(get("/login?logout")
@@ -294,7 +305,7 @@ public class DefaultLoginPageConfigurerTests {
 	@Test
 	public void loginPageWhenRememberConfigureThenDefaultLoginPageWithRememberMeCheckbox() throws Exception {
 		this.spring.register(DefaultLoginPageWithRememberMeConfig.class).autowire();
-		CsrfToken csrfToken = new DefaultCsrfToken("X-CSRF-TOKEN", "_csrf", "BaseSpringSpec_CSRFTOKEN");
+		CsrfToken csrfToken = getMockCsrfToken("X-CSRF-TOKEN", "_csrf", "BaseSpringSpec_CSRFTOKEN");
 		String csrfAttributeName = HttpSessionCsrfTokenRepository.class.getName().concat(".CSRF_TOKEN");
 
 		this.mvc.perform(get("/login")
@@ -352,7 +363,7 @@ public class DefaultLoginPageConfigurerTests {
 	public void loginPageWhenOpenIdLoginConfiguredThenOpedIdLoginPage() throws Exception {
 		this.spring.register(DefaultLoginPageWithOpenIDConfig.class).autowire();
 
-		CsrfToken csrfToken = new DefaultCsrfToken("X-CSRF-TOKEN", "_csrf", "BaseSpringSpec_CSRFTOKEN");
+		CsrfToken csrfToken = getMockCsrfToken("X-CSRF-TOKEN", "_csrf", "BaseSpringSpec_CSRFTOKEN");
 		String csrfAttributeName = HttpSessionCsrfTokenRepository.class.getName().concat(".CSRF_TOKEN");
 
 		this.mvc.perform(get("/login")
@@ -402,7 +413,7 @@ public class DefaultLoginPageConfigurerTests {
 	@Test
 	public void loginPageWhenOpenIdLoginAndFormLoginAndRememberMeConfiguredThenOpedIdLoginPage() throws Exception {
 		this.spring.register(DefaultLoginPageWithFormLoginOpenIDRememberMeConfig.class).autowire();
-		CsrfToken csrfToken = new DefaultCsrfToken("X-CSRF-TOKEN", "_csrf", "BaseSpringSpec_CSRFTOKEN");
+		CsrfToken csrfToken = getMockCsrfToken("X-CSRF-TOKEN", "_csrf", "BaseSpringSpec_CSRFTOKEN");
 		String csrfAttributeName = HttpSessionCsrfTokenRepository.class.getName().concat(".CSRF_TOKEN");
 
 		this.mvc.perform(get("/login")

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2017 the original author or authors.
+ * Copyright 2002-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -82,7 +82,7 @@ public class CookieCsrfTokenRepositoryTests {
 				.isEqualTo(CookieCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME);
 		assertThat(tokenCookie.getPath()).isEqualTo(this.request.getContextPath());
 		assertThat(tokenCookie.getSecure()).isEqualTo(this.request.isSecure());
-		assertThat(tokenCookie.getValue()).isEqualTo(token.getToken());
+		assertThat(token.matches(tokenCookie.getValue())).isTrue();
 		assertThat(tokenCookie.isHttpOnly()).isEqualTo(true);
 	}
 
@@ -250,6 +250,7 @@ public class CookieCsrfTokenRepositoryTests {
 		this.repository.setParameterName(parameterName);
 		this.repository.setCookieName(cookieName);
 
+		DefaultCsrfToken token = new DefaultCsrfToken(headerName, parameterName, value);
 		this.request.setCookies(new Cookie(cookieName, value));
 
 		CsrfToken loadToken = this.repository.loadToken(this.request);
@@ -257,7 +258,7 @@ public class CookieCsrfTokenRepositoryTests {
 		assertThat(loadToken).isNotNull();
 		assertThat(loadToken.getHeaderName()).isEqualTo(headerName);
 		assertThat(loadToken.getParameterName()).isEqualTo(parameterName);
-		assertThat(loadToken.getToken()).isEqualTo(value);
+		assertThat(loadToken.matches(token.getToken())).isTrue();
 	}
 
 	@Test(expected = IllegalArgumentException.class)
